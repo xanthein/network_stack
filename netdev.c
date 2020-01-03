@@ -20,6 +20,7 @@ void netdev_read(void)
 	switch(ntohs(frame->type)) {
 		case ETH_TYPE_IP:
 			printf("receive IP packet\n");
+			ipv4_read(buffer, size);
 			break;
 		case ETH_TYPE_ARP:
 			printf("receive ARP packet\n");
@@ -39,6 +40,14 @@ void netdev_write(uint8_t *buffer, size_t size)
 int netdev_open(void)
 {
 	tap_init();
+
+	mac_address[0] = 0x00;
+	mac_address[1] = 0x0c;
+	mac_address[2] = 0x29;
+	mac_address[3] = 0x4c;
+	mac_address[4] = 0x38;
+	mac_address[5] = 0x22;
+
 	ipv4_init();
 	arp_init();
 }

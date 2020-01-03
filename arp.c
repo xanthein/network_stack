@@ -10,8 +10,6 @@
 #define TRANS_TABLE_SIZE 128
 struct arp_trans_table arp_tables[TRANS_TABLE_SIZE];
 
-uint8_t mac_address[6];
-
 struct arp_trans_table* trans_table_lookup(uint32_t ip)
 {
 	for(int i=0;i<TRANS_TABLE_SIZE;i++) {
@@ -144,12 +142,6 @@ void arp_request(uint32_t target_ip)
 
 int arp_init()
 {
-	mac_address[0] = 0x00;
-	mac_address[1] = 0x0c;
-	mac_address[2] = 0x29;
-	mac_address[3] = 0x4c;
-	mac_address[4] = 0x38;
-	mac_address[5] = 0x22;
 }
 
 int arp_close()
