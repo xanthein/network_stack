@@ -10,7 +10,7 @@ struct ether_frame {
     uint8_t  data[];
 } __attribute__((packed));
 
-#define ETH_HDEAR_SIZE sizeof(struct ether_frame)
+#define ETH_HEADER_SIZE sizeof(struct ether_frame)
 
 #define ETH_TYPE_IP		0x0800
 #define ETH_TYPE_ARP	0x0806

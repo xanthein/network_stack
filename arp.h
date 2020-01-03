@@ -22,6 +22,8 @@ struct arp_header {
 	uint32_t target_ip;
 } __attribute__((packed));
 
+#define ARP_HEADER_SIZE sizeof(struct arp_header)
+
 struct arp_trans_table {
 	uint8_t mac[6];
 	uint32_t ip;
@@ -30,7 +32,7 @@ struct arp_trans_table {
 };
 
 int arp_read(uint8_t *buffer, uint32_t size);
-int arp_request();
+void arp_request(uint32_t target_ip);
 int arp_init();
 int arp_close();
 
