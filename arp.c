@@ -10,6 +10,8 @@
 #define TRANS_TABLE_SIZE 128
 struct arp_trans_table arp_tables[TRANS_TABLE_SIZE];
 
+uint8_t BROADCAST_MAC[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
 struct arp_trans_table* trans_table_lookup(uint32_t ip)
 {
 	for(int i=0;i<TRANS_TABLE_SIZE;i++) {
@@ -94,9 +96,6 @@ int arp_read(uint8_t *buffer, uint32_t size)
 
 		switch(header->operation) {
 			case ARP_REQUEST:
-				memcpy(ether->dst_mac, ether->src_mac, 6);
-				memcpy(ether->src_mac, mac_address, 6);
-	
 				header->hardware_type = htons(header->hardware_type);
 				header->protocol_type = htons(header->protocol_type);
 				header->operation = htons(ARP_REPLY);
@@ -105,7 +104,7 @@ int arp_read(uint8_t *buffer, uint32_t size)
 				header->sender_ip = ntohl(ipv4_info.ip);
 				memcpy(header->sender_mac, mac_address, 6);
 
-				netdev_write(buffer, size);
+				netdev_write(buffer, size, ether->src_mac, ETH_TYPE_ARP);
 
 				break;
 			default:
@@ -122,9 +121,6 @@ void arp_request(uint32_t target_ip)
 	struct ether_frame *ether = (struct ether_frame *)calloc(1, ETH_HEADER_SIZE + ARP_HEADER_SIZE);
 	struct arp_header *header = (struct arp_header *)(&ether->data[0]);
 
-	memset(ether->dst_mac, 0xff, 6);
-	memcpy(ether->src_mac, mac_address, 6);
-	ether->type = htons(ETH_TYPE_ARP);
 	header->hardware_type = htons(ARP_ETHERNET);
 	header->protocol_type = htons(ARP_IPV4);
 	header->hardware_len = 6;
@@ -135,7 +131,7 @@ void arp_request(uint32_t target_ip)
 	memset(header->target_mac, 0xff, 6);
 	header->target_ip = htonl(target_ip);
 
-	netdev_write((uint8_t *)ether, ETH_HEADER_SIZE+ARP_HEADER_SIZE);
+	netdev_write((uint8_t *)ether, ETH_HEADER_SIZE+ARP_HEADER_SIZE, BROADCAST_MAC, ETH_TYPE_ARP);
 
 	free(ether);
 }
