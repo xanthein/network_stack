@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <netinet/in.h>
 #include "tap_if.h"
 #include "ethernet.h"
@@ -19,11 +20,9 @@ void netdev_read(void)
 
 	switch(ntohs(frame->type)) {
 		case ETH_TYPE_IP:
-			printf("receive IP packet\n");
 			ipv4_read(buffer, size);
 			break;
 		case ETH_TYPE_ARP:
-			printf("receive ARP packet\n");
 			arp_read(buffer, size);
 			break;
 		default:
@@ -32,8 +31,13 @@ void netdev_read(void)
 	}
 }
 
-void netdev_write(uint8_t *buffer, size_t size)
+void netdev_write(uint8_t *buffer, size_t size, uint8_t *dst_mac, uint16_t type)
 {
+	struct ether_frame *header = (struct ether_frame *)buffer;
+
+	memcpy(header->dst_mac, dst_mac, 6);
+	memcpy(header->src_mac, mac_address, 6);
+	header->type = htons(ETH_TYPE_ARP);
 	tap_write(buffer, size);
 }
 
