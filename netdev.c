@@ -31,14 +31,14 @@ void netdev_read(void)
 	}
 }
 
-void netdev_write(uint8_t *buffer, size_t size, uint8_t *dst_mac, uint16_t type)
+int netdev_write(uint8_t *buffer, size_t size, uint8_t *dst_mac, uint16_t type)
 {
 	struct ether_frame *header = (struct ether_frame *)buffer;
 
 	memcpy(header->dst_mac, dst_mac, 6);
 	memcpy(header->src_mac, mac_address, 6);
-	header->type = htons(ETH_TYPE_ARP);
-	tap_write(buffer, size);
+	header->type = htons(type);
+	return tap_write(buffer, size);
 }
 
 int netdev_open(void)
