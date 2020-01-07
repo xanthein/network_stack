@@ -23,14 +23,19 @@ struct ipv4_header {
 	uint8_t data[];
 } __attribute__((packed));
 
+#define IPV4_HEADER_SIZE sizeof(struct ipv4_header)
+
 #define IP_ICMP	0x01
 #define IP_TCP	0x06
 #define IP_UDP	0x11
+
+#define IP_FLAGS_DF	(1<<14)
+#define IP_FLAGS_MF	(1<<13)
 
 struct ipv4_info_t ipv4_info;
 
 void ipv4_init();
 int ipv4_read(uint8_t *buffer, uint32_t size);
-void ipv4_write();
+int ipv4_write(uint8_t *buffer, uint32_t size, uint32_t dst_ip, uint8_t protocol);
 
 #endif

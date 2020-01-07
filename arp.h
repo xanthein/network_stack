@@ -31,6 +31,7 @@ struct arp_trans_table {
 	uint8_t age;
 };
 
+struct arp_trans_table* trans_table_lookup(uint32_t ip);
 int arp_read(uint8_t *buffer, uint32_t size);
 void arp_request(uint32_t target_ip);
 int arp_init();
