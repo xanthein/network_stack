@@ -1,5 +1,5 @@
 TARGET	:= stack_test
-SOURCES	:= arp.c ipv4.c main.c netdev.c tap_if.c
+SOURCES	:= utils.c arp.c ipv4.c main.c netdev.c tap_if.c icmpv4.c
 CFLAGS	:=
 LFLAGS	:=
 LIBS	:=

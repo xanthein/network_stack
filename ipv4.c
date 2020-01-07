@@ -40,8 +40,7 @@ int ipv4_read(uint8_t *buffer, uint32_t size)
 
 	switch(header->protocol) {
 		case IP_ICMP:
-			printf("icmp\n");
-			free(buffer);
+			icmpv4_read(buffer, size);
 			break;
 		case IP_TCP:
 			printf("tcp\n");
