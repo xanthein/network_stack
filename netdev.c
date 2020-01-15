@@ -8,6 +8,7 @@
 #include "netdev.h"
 #include "arp.h"
 #include "ipv4.h"
+#include "tcpv4.h"
 
 void netdev_read(void)
 {
@@ -52,11 +53,14 @@ int netdev_open(void)
 	mac_address[4] = 0x38;
 	mac_address[5] = 0x22;
 
-	ipv4_init();
 	arp_init();
+	ipv4_init();
+	tcpv4_init();
 }
 
 int netdev_close(void)
 {
 	tap_close();
+	//ipv4_exit();
+	tcpv4_exit();
 }

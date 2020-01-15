@@ -5,6 +5,7 @@
 #include "arp.h"
 #include "ipv4.h"
 #include "icmpv4.h"
+#include "tcpv4.h"
 #include "utils.h"
 
 int ipv4_read(uint8_t *buffer, uint32_t size)
@@ -43,8 +44,7 @@ int ipv4_read(uint8_t *buffer, uint32_t size)
 			icmpv4_read(buffer, size);
 			break;
 		case IP_TCP:
-			printf("tcp\n");
-			free(buffer);
+			tcpv4_read(buffer, size);
 			break;
 		case IP_UDP:
 			printf("udp\n");
