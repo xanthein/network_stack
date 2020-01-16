@@ -330,7 +330,7 @@ int tcpv4_write(uint8_t *buffer, uint32_t size, struct tcp_control *tcb, uint8_t
 	tcpv4_length = TCPV4_HEADER_SIZE + ((flags & FLAG_SYN)?4:0) + data_length;
 	packet_length = ETH_HEADER_SIZE + IPV4_HEADER_SIZE + tcpv4_length;
 
-	memset(header, 0, packet_length);
+	memset(ether, 0, packet_length);
 
 	if(data_length)
 		memcpy(header->data, buffer, size);
