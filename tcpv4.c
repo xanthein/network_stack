@@ -78,7 +78,7 @@ int is_seq_valid(struct tcp_control *tcb, struct tcpv4_header *header, uint32_t 
 	return 1;
 }
 
-int save_data(struct tcp_control *tcb, void *data, uint32_t data_size)
+uint32_t save_data(struct tcp_control *tcb, void *data, uint32_t data_size)
 {
 	uint32_t buffer_size;
 
@@ -89,9 +89,8 @@ int save_data(struct tcp_control *tcb, void *data, uint32_t data_size)
 
 	memcpy(tcb->rx_buffer_ptr, data, buffer_size);
 	tcb->local_window = tcb->local_window - buffer_size;
-	tcb->remote_next_seq = tcb->remote_seq + buffer_size;
 
-	return tcpv4_write(NULL, 0, tcb, FLAG_ACK);
+	return buffer_size;
 }
 
 void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
@@ -173,12 +172,13 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 						if(tcb->remote_next_seq == header->seq_number) {
 							if(tcb->local_ack < header->ack_number && 
 								header->ack_number <= (tcb->local_seq+1)) {
-								//check data left for sending
+								//TODO check data left for sending
 								//receive data
 								if(packet_size > 0) {
 									tcb->remote_seq = header->seq_number;
-									if(save_data(tcb, header->data, packet_size - TCPV4_HEADER_SIZE))
-										printf("ESTABLISHED save data faile\n");
+									uint32_t data_write = save_data(tcb, header->data, packet_size - TCPV4_HEADER_SIZE);
+									tcb->remote_next_seq = tcb->remote_seq + data_write;
+									tcpv4_write(NULL, 0, tcb, FLAG_ACK);
 								}
 							}
 						}
