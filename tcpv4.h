@@ -107,6 +107,7 @@ struct tcp_control {
 };
 
 int tcpv4_listen(uint16_t port);
+int tcpv4_close(uint16_t port);
 void tcpv4_init();
 void tcpv4_exit();
 int tcpv4_read(uint8_t *buffer, uint32_t size);

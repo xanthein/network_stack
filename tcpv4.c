@@ -156,6 +156,10 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 						}
 					}
 					break;
+				case CLOSE:
+					tcpv4_write(NULL, 0, tcb, FLAG_FIN);
+					tcb->state = TCPV4_FIN_WAIT_1;
+					break;
 			}
 			break;
 		case TCPV4_ESTABLISHED:
@@ -183,7 +187,24 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 							}
 						}
 					}
-				break;
+					break;
+				case RECV_FIN_ACK:
+					if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+						if(tcb->remote_next_seq == header->seq_number) {
+							if(tcb->local_ack < header->ack_number &&
+								header->ack_number <= (tcb->local_seq+1)) {
+								tcb->remote_seq = header->seq_number;
+								tcb->remote_next_seq = header->seq_number + 1;
+								tcpv4_write(NULL, 0, tcb, FLAG_ACK | FLAG_FIN);
+								tcb->state = TCPV4_CLOSE_WAIT;
+							}
+						}
+					}
+					break;
+				case CLOSE:
+					tcpv4_write(NULL, 0, tcb, FLAG_FIN);
+					tcb->state = TCPV4_FIN_WAIT_1;
+					break;
 			}
 			break;
 		case TCPV4_FIN_WAIT_1:
@@ -191,6 +212,17 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 		case TCPV4_CLOSE_WAIT:
 		case TCPV4_CLOSING:
 		case TCPV4_LAST_ACK:
+			if(tcb->event == RECV_ACK) {
+				if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+					if(tcb->remote_next_seq == header->seq_number) {
+						if(tcb->local_ack < header->ack_number &&
+							header->ack_number <= (tcb->local_seq+1)) {
+							tcb->state = TCPV4_CLOSED;
+						}
+					}
+				}
+			}
+			break;
 		case TCPV4_TIME_WAIT:
 			break;
 	}
@@ -231,8 +263,21 @@ int tcpv4_timeout()
 {
 }
 
-int tcpv4_close()
+int tcpv4_close(uint16_t port)
 {
+	struct tcp_control *tcb;
+
+	tcb = look_for_control(port);
+	if(tcb) {
+		printf("port not used\n");
+		return -1;
+	}
+
+	tcb->event = CLOSE;
+
+	update_state_machine(tcb, NULL, 0, 0);
+
+	return 0;
 }
 
 void tcpv4_parse_flag_option(struct tcp_control *tcb, struct tcpv4_header *header, uint32_t size)
