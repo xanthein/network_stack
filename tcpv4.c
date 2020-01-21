@@ -156,6 +156,16 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 						}
 					}
 					break;
+				case RECV_FIN_ACK:
+					if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+						if(tcb->remote_next_seq == header->seq_number) {
+							if((tcb->local_seq+1) == header->ack_number) {
+								tcpv4_write(NULL, 0, tcb, FLAG_ACK);
+								tcb->state = TCPV4_CLOSE_WAIT;
+							}
+						}
+					}
+					break;
 				case CLOSE:
 					tcpv4_write(NULL, 0, tcb, FLAG_FIN);
 					tcb->state = TCPV4_FIN_WAIT_1;
@@ -194,8 +204,12 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 							if(tcb->local_ack < header->ack_number &&
 								header->ack_number <= (tcb->local_seq+1)) {
 								tcb->remote_seq = header->seq_number;
-								tcb->remote_next_seq = header->seq_number + 1;
-								tcpv4_write(NULL, 0, tcb, FLAG_ACK | FLAG_FIN);
+								if(packet_size > 0) {
+									uint32_t data_write = save_data(tcb, header->data, packet_size - TCPV4_HEADER_SIZE);
+									tcb->remote_next_seq = tcb->remote_seq + data_write;
+								} else
+									tcb->remote_next_seq = header->seq_number + 1;
+								tcpv4_write(NULL, 0, tcb, FLAG_ACK);
 								tcb->state = TCPV4_CLOSE_WAIT;
 							}
 						}
@@ -208,9 +222,65 @@ void update_state_machine(struct tcp_control *tcb, struct tcpv4_header *header,
 			}
 			break;
 		case TCPV4_FIN_WAIT_1:
+			switch(tcb->event) {
+				case RECV_ACK:
+					if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+						if(tcb->remote_next_seq == header->seq_number) {
+							if(tcb->local_ack < header->ack_number &&
+								header->ack_number <= (tcb->local_seq+1)) {
+								tcb->remote_seq = header->seq_number;
+								tcb->remote_next_seq = header->seq_number + 1;
+								tcb->state = TCPV4_FIN_WAIT_2;
+							}
+						}
+					}
+					break;
+				case RECV_FIN_ACK:
+					if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+						if(tcb->remote_next_seq == header->seq_number) {
+							if(tcb->local_ack < header->ack_number &&
+								header->ack_number <= (tcb->local_seq+1)) {
+								tcb->remote_seq = header->seq_number;
+								tcb->remote_next_seq = header->seq_number + 1;
+								tcb->state = TCPV4_CLOSING;
+							}
+						}
+					}
+					break;
+			}
+			break;
 		case TCPV4_FIN_WAIT_2:
+			if(tcb->event == RECV_FIN_ACK) {
+				if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+					if(tcb->remote_next_seq == header->seq_number) {
+						if(tcb->local_ack < header->ack_number &&
+							header->ack_number <= (tcb->local_seq+1)) {
+							tcb->remote_seq = header->seq_number;
+							tcb->remote_next_seq = header->seq_number + 1;
+							tcb->state = TCPV4_TIME_WAIT;
+							tcpv4_write(NULL, 0, tcb, FLAG_ACK);
+						}
+					}
+				}
+			}
+			break;
 		case TCPV4_CLOSE_WAIT:
+			if(tcb->event == CLOSE) {
+				tcpv4_write(NULL, 0, tcb, FLAG_FIN);
+				tcb->state = TCPV4_FIN_WAIT_1;
+			}
+			break;
 		case TCPV4_CLOSING:
+			if(tcb->event == RECV_ACK) {
+				if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
+					if(tcb->remote_next_seq == header->seq_number) {
+						if(tcb->local_ack < header->ack_number &&
+							header->ack_number <= (tcb->local_seq+1)) {
+							tcb->state = TCPV4_TIME_WAIT;
+						}
+					}
+				}
+			}
 		case TCPV4_LAST_ACK:
 			if(tcb->event == RECV_ACK) {
 				if(tcb->dst_ip == remote_address && tcb->dst_port == header->src_port) {
