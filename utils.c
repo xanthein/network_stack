@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "utils.h"
+#include <stdio.h>
 
 uint16_t calculate_checksum(uint8_t *buffer, uint32_t size)
 {
@@ -28,6 +29,8 @@ uint16_t calculate_tcp_checksum(uint8_t *buffer, uint32_t size, uint32_t src_ip,
 
 	for(int i=0;i<size/2;i++)
 		sum += buffer16[i];
+	if(size%2)
+		sum = sum + (buffer16[size/2] & 0xff);
 
 	return ~((sum>>16) + (sum&0xffff));
 }
