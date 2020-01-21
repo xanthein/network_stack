@@ -45,6 +45,7 @@ void delete_control(struct tcp_control *tcb)
 	tcb->next->prev = tcb->prev;
 	tcb->prev->next = tcb->next;
 
+	free(tcb->rx_buffer);
 	free(tcb);
 }
 
@@ -87,7 +88,18 @@ uint32_t save_data(struct tcp_control *tcb, void *data, uint32_t data_size)
 	else
 		buffer_size = tcb->local_window;
 
-	memcpy(tcb->rx_buffer_ptr, data, buffer_size);
+	if((tcb->rx_buffer_w_ptr + buffer_size) > (tcb->rx_buffer + RECEIVE_BUFFER_SIZE)) {
+		uint32_t exceed_size = (tcb->rx_buffer_w_ptr + buffer_size) -
+			(tcb->rx_buffer + RECEIVE_BUFFER_SIZE);
+		memcpy(tcb->rx_buffer_w_ptr, data, (buffer_size - exceed_size));
+		memcpy(tcb->rx_buffer, data+(buffer_size - exceed_size), exceed_size);
+		tcb->rx_buffer_w_ptr = tcb->rx_buffer + exceed_size;
+	}
+	else {
+		memcpy(tcb->rx_buffer_w_ptr, data, buffer_size);
+		tcb->rx_buffer_w_ptr += buffer_size;
+	}
+
 	tcb->local_window = tcb->local_window - buffer_size;
 
 	return buffer_size;
@@ -321,7 +333,8 @@ int tcpv4_listen(uint16_t port)
 	tcb->event = PASSIVE_OPEN;
 	tcb->local_window = RECEIVE_BUFFER_SIZE;
 	tcb->rx_buffer = calloc(1, RECEIVE_BUFFER_SIZE);
-	tcb->rx_buffer_ptr = tcb->rx_buffer;
+	tcb->rx_buffer_w_ptr = tcb->rx_buffer;
+	tcb->rx_buffer_r_ptr = tcb->rx_buffer;
 	insert_control(tcb);
 
 	update_state_machine(tcb, NULL, 0, 0);
@@ -338,7 +351,7 @@ int tcpv4_close(uint16_t port)
 	struct tcp_control *tcb;
 
 	tcb = look_for_control(port);
-	if(tcb) {
+	if(tcb == NULL) {
 		printf("port not used\n");
 		return -1;
 	}
@@ -481,6 +494,44 @@ int tcpv4_write(uint8_t *buffer, uint32_t size, struct tcp_control *tcb, uint8_t
 	else {
 		return -1;
 	}
+}
+
+int tcpv4_collect_data(uint16_t port, uint8_t *buffer, uint32_t size)
+{
+	uint16_t data_size, read_data_size;
+	struct tcp_control *tcb;
+
+	tcb = look_for_control(port);
+	if(tcb == NULL) {
+		printf("port not used\n");
+		return -1;
+	}
+
+	data_size = RECEIVE_BUFFER_SIZE - tcb->local_window;
+	while(data_size == 0)
+		data_size = RECEIVE_BUFFER_SIZE - tcb->local_window;
+
+	read_data_size = data_size > size ? size : data_size;
+	if((tcb->rx_buffer_r_ptr + read_data_size) > (tcb->rx_buffer + RECEIVE_BUFFER_SIZE)) {
+		uint32_t exceed_size = (tcb->rx_buffer_r_ptr + read_data_size) -
+			(tcb->rx_buffer + RECEIVE_BUFFER_SIZE);
+
+		memcpy(buffer, tcb->rx_buffer_r_ptr, read_data_size - exceed_size);
+		memcpy(buffer + (read_data_size - exceed_size), tcb->rx_buffer,
+				exceed_size);
+		tcb->rx_buffer_r_ptr = tcb->rx_buffer + exceed_size;
+	} else {
+		memcpy(buffer, tcb->rx_buffer_r_ptr, read_data_size);
+		tcb->rx_buffer_r_ptr += read_data_size;
+	}
+
+	tcb->local_window = tcb->local_window + read_data_size;
+
+	return read_data_size;
+}
+
+int tcpv4_distribute_data(uint16_t port, uint8_t *buffer, uint32_t size)
+{
 }
 
 void tcpv4_init()

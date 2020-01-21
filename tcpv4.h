@@ -94,9 +94,8 @@ struct tcp_control {
 	tcpv4_events event;
 	
 	uint8_t *rx_buffer;
-	uint8_t *rx_buffer_ptr;
-	uint8_t *tx_buffer;
-	uint8_t *tx_buffer_ptr;
+	uint8_t *rx_buffer_r_ptr;
+	uint8_t *rx_buffer_w_ptr;
 	
 //應用層輸出佇列
 //tcp的重傳
@@ -112,5 +111,7 @@ void tcpv4_init();
 void tcpv4_exit();
 int tcpv4_read(uint8_t *buffer, uint32_t size);
 int tcpv4_write(uint8_t *buffer, uint32_t size, struct tcp_control *tcb, uint8_t flags);
+int tcpv4_collect_data(uint16_t port, uint8_t *buffer, uint32_t size);
+int tcpv4_distribute_data(uint16_t port, uint8_t *buffer, uint32_t size);
 
 #endif
